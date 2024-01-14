@@ -55,7 +55,7 @@ def compute_metrics(eval_preds, tokenizer, metric_type="rouge"):
 
     return result
 
-
+@click.command()
 @click.argument("output_dir", type=str)
 @click.option("--lr", type=float, default=1e-4, help="Learning rate")
 @click.option("--epochs", type=int, default=3, help="Number of Epochs")
