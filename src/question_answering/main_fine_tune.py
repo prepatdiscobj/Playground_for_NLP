@@ -63,7 +63,7 @@ def compute_metrics(eval_preds, tokenizer, metric_type="rouge"):
 @click.option("--train_batch_size", type=int, default=8, help="Training batch size")
 @click.option("--num_checkpoints", type=int, default=3, help="Number of Checkpoints to retain")
 @click.option("--weight_decay", type=float, default=1e-2, help="Weight Decay for lr")
-def main(output_dir, lr, num_epochs, eval_batch_size, train_batch_size, num_checkpoints, weight_decay):
+def main(output_dir, lr, epochs, eval_batch_size, train_batch_size, num_checkpoints, weight_decay):
     """
     OUTPUT_DIR Output Directory where results will be stored
 
@@ -78,7 +78,7 @@ def main(output_dir, lr, num_epochs, eval_batch_size, train_batch_size, num_chec
     training_args = Seq2SeqTrainingArguments(
         evaluation_strategy="epoch",
         learning_rate=lr,
-        num_train_epochs=num_epochs,
+        num_train_epochs=epochs,
         output_dir=output_dir,
         per_device_eval_batch_size=eval_batch_size,
         per_device_train_batch_size=train_batch_size,
