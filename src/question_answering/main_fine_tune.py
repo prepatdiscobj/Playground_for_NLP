@@ -4,7 +4,7 @@ import numpy as np
 from datasets import load_dataset
 from transformers import T5Tokenizer, DataCollatorForSeq2Seq
 from transformers import T5ForConditionalGeneration, Seq2SeqTrainingArguments, Seq2SeqTrainer
-
+from functools import partial
 from dataclasses import dataclass
 from util.python_util import get_latest_file_name, setup_output_loggin
 
@@ -42,21 +42,27 @@ def load_model_with_tokenizer(model_name):
 
 def get_qa_dataset(qa_dataset_name="squad"):
     squad = load_dataset(qa_dataset_name)
-    squad_qa = squad["train"].train_test_split(test_size=0.25)
-    return squad_qa, squad["test"]
+    # #squad_qa = squad["train"].train_test_split(test_size=0.25)
+    # #print(squad.keys())
+    return squad
 
 
-def preprocess_entry(tokenizer, qa_entry, prefix, max_question_length=128, max_answer_length=512):
-    inputs = [prefix + question_text for question_text in qa_entry["question"]]
-    model_inputs = tokenizer(inputs, max_question_length, truncation=True)
-    model_labels = tokenizer(text_target=qa_entry["answer"],
+def preprocess_entry(qa_entry, tokenizer, prefix, max_question_length=128, max_answer_length=512):
+    inputs = []
+    for index, question in enumerate(qa_entry['question']):
+        full_input = f"{prefix} {question} context: {qa_entry['context'][index]}"
+        inputs.append(full_input)
+
+    model_inputs = tokenizer(inputs, max_length=max_question_length, truncation=True)
+    answers = [" or ".join(entry["text"]) for entry in qa_entry["answers"]]
+    model_labels = tokenizer(text_target=answers,
                              max_length=max_answer_length,
                              truncation=True)
     model_inputs["labels"] = model_labels["input_ids"]
     return model_inputs
 
 
-def compute_metrics(eval_preds, metric_type="rouge"):
+def compute_metrics(eval_preds, tokenizer, metric_type="rouge"):
     metric = evaluate.load(metric_type)
     preds, labels = eval_preds
 
@@ -74,7 +80,7 @@ def compute_metrics(eval_preds, metric_type="rouge"):
     return result
 
 
-if __name__ == "__main__":
+def main():
     # download punkt once only
     try:
         nltk.data.find('tokenizers/punkt')
@@ -85,22 +91,32 @@ if __name__ == "__main__":
     print('Setting up Log files for capturing output and error')
     log_filename = get_latest_file_name(__file__, "log")
     err_filename = get_latest_file_name(__file__, "error")
-    setup_output_loggin(err_filename, log_filename)
+    # setup_output_loggin(err_filename, log_filename)
     print('Loading model .....')
     tokenizer, model = load_model_with_tokenizer("google/flan-t5-base")
     data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizer, model=model)
     print('Obtaining Dataset ....')
     qa_dataset = get_qa_dataset()
-    tokenized_dataset = qa_dataset.map(preprocess_entry, batched=True)
-    training_args = TrainingArgs.create_training_arguments()
+
+    preprocess_fn = partial(preprocess_entry, tokenizer=tokenizer, prefix="Please Answer the question:")
+    tokenized_train = qa_dataset["train"].map(preprocess_fn, batched=True)
+    tokenize_validation = qa_dataset["validation"].map(preprocess_fn, batched=True)
+
+    metric_fn = partial(compute_metrics, tokenizer=tokenizer)
+    args_obj = TrainingArgs()
+    training_args = args_obj.create_training_arguments()
     trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
-        train_dataset=tokenized_dataset["train"],
-        eval_dataset=tokenized_dataset["test"],
+        train_dataset=tokenized_train,
+        eval_dataset=tokenize_validation,
         tokenizer=tokenizer,
         data_collator=data_collator,
-        compute_metrics=compute_metrics
+        compute_metrics=metric_fn
     )
     print('Everything ready!!! Preparing to train')
     trainer.train()
+
+
+if __name__ == "__main__":
+    main()
