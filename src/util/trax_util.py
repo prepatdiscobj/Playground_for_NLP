@@ -50,7 +50,9 @@ def generate_data_pipeline(vocab_dir, vocab_file, max_seq_length=2048):
     )
 
 
-def get_streaming_data(data_pipeline, dataset):
+def get_streaming_data(data_pipeline, dataset, seed=42):
+    random.seed(seed)
+
     def stream(data):
         while True:
             d = random.choice(data)
@@ -65,3 +67,8 @@ def get_data_generator(data_pipeline):
     train_generator = get_streaming_data(data_pipeline, new_train)
     eval_generator = get_streaming_data(data_pipeline, test)
     return train_generator, eval_generator
+
+
+def setup_data_pipelines(vocab_dir, vocab_file, max_seq_length):
+    data_pipeline = generate_data_pipeline(vocab_dir, vocab_file, max_seq_length)
+    return get_data_generator(data_pipeline)

@@ -1,8 +1,8 @@
 import json
 import os
-from itertools import chain
-from functools import partial
 from dataclasses import dataclass
+from functools import partial
+from itertools import chain
 
 
 @dataclass
@@ -42,8 +42,8 @@ def get_json_data(file_paths):
 
 
 def load_woz_dataset():
-    parent_directory = os.path.abspath('../..')
-
+    os.chdir(os.path.dirname(__file__))
+    parent_directory = os.path.abspath('../resources')
     root_train_path = os.path.join(parent_directory, 'data/MultiWoz2.2/train/')
     train_paths = [f'{root_train_path}dialogues_00{i}.json' if i < 10 else f'{root_train_path}dialogues_0{i}.json' for i
                    in
@@ -70,7 +70,7 @@ def get_woz_conversations(first_prefix=" Person 1: ", second_prefix=" Person 2: 
 
 
 def get_all_conversation(data, first_prefix, second_prefix):
-    fn_conversation = partial(get_conversation,first_prefix=first_prefix, second_prefix=second_prefix)
+    fn_conversation = partial(get_conversation, first_prefix=first_prefix, second_prefix=second_prefix)
     return list(map(fn_conversation, data))
 
 

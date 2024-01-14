@@ -1,7 +1,5 @@
 import trax.models
 from trax import layers as tl
-from read_woz_dataset import get_woz_conversations
-import random
 
 
 class ReformerWrapper:
