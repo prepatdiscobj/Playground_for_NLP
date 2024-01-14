@@ -7,3 +7,4 @@ rouge_score>=0.1.2
 sentencepiece>=0.1.99
 tokenizers>=0.15.0
 transformers[torch]
+wandb
